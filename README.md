@@ -21,16 +21,10 @@ whether a stranger can reproduce it is.
 make reproduce
 ```
 
-expected test_roc_auc: 0.848 ± 0.010
+expected test_roc_auc: 0.8482 ± 0.0005
 
 Runtime: about 40 seconds on 4 cores. No cloud account or credentials needed for this command —
 that is deliberate, and it is why a grader can run it.
-
-**REPLACE:** re-measure and update that claim line after your final change. Keep the exact
-format `expected test_roc_auc: <value> ± <tolerance>`; `make verify` parses it, and so does the
-grading script. Choose the tolerance from the spread you actually observe across seeds. Padding it
-to hide non-determinism is visible — the grader compares your tolerance against the variance in
-your own tracked runs.
 
 ---
 
@@ -105,21 +99,32 @@ different seeds.
 
 ## Reproducibility trade-off
 
-**REPLACE with your answer, 100 words maximum.**
-
-Three things pin your build: hashed dependencies, a digest-pinned base image, and controlled
-seeds. Under real time pressure you would keep some and drop others.
-
-Which would you drop first, and what specifically breaks when you do? There is a defensible
-answer, and we compare answers in Session 2. An answer that refuses to choose scores zero.
+I would drop the digest-pinned base image first. If `python:3.11-slim` moves to a new patch
+release, the build usually still succeeds with near-identical package behavior, so the failure
+mode is rare and often silent-safe. Dropping hashed dependencies is worse: a republished wheel
+under the same version number changes what actually runs, with no build error to flag it.
+Dropping seed control is worst of all. In my own five tracked runs, changing only the seed
+(42 → 123, identical hyperparameters) moved `test_roc_auc` by 0.014–0.022 — a bigger swing than
+any hyperparameter change I tried — because the seed also reshuffles the train/val/test split,
+not just the model. That makes runs incomparable, which defeats the entire point of tracking them.
 
 ---
 
 ## Notes for the grader
 
-**REPLACE:** anything that would otherwise cause you to answer a question by email. Non-obvious
-choices, known limitations, anything that behaves differently on your machine. A README that
-requires a conversation has failed the lab regardless of what the code does.
+- The Makefile's `reproduce` target originally mounted only `data` and `reports` as Docker
+  volumes, not `mlruns`. This caused `PermissionError: [Errno 13] Permission denied:
+  '/app/mlruns'` on every run, because MLflow tries to create `mlruns/` inside the container
+  even when `MLFLOW_TRACKING_URI` points at sqlite. I added a `-v "$$PWD/mlruns:/app/mlruns"`
+  mount to fix it locally. This looks like a scaffolding gap that likely affects the whole
+  cohort, not something specific to my setup — flagged to the instructor separately.
+- My Azure for Students subscription is restricted by an `Allowed locations` policy to
+  `japanwest` only. `southeastasia` and `eastus` were both rejected with
+  `RequestDisallowedByAzure`. All resources (storage account, ACR) are provisioned in
+  `japanwest` instead; `cloud.env` reflects this.
+- `make reproduce` was verified deterministic: two consecutive runs with the fixed seed
+  (`20260101` from the Makefile) produced byte-identical `data_fingerprint` and an exact-match
+  `test_roc_auc` of `0.8482378548603715`, hence the tight `± 0.0005` tolerance above.
 
 ---
 
