@@ -125,7 +125,12 @@ not just the model. That makes runs incomparable, which defeats the entire point
 - `make reproduce` was verified deterministic: two consecutive runs with the fixed seed
   (`20260101` from the Makefile) produced byte-identical `data_fingerprint` and an exact-match
   `test_roc_auc` of `0.8482378548603715`, hence the tight `± 0.0005` tolerance above.
-
+- `dvc pull` requires Azure credentials scoped to my storage account
+  (`itcs3556688227`), authenticated via `DefaultAzureCredential`. A grader without
+  those credentials cannot pull directly. If you need to verify the DVC-tracked
+  data, I can grant your Azure AD account (or the grading service principal)
+  "Storage Blob Data Reader" on this storage account — message me the identity to
+  grant, or I can generate a time-limited SAS token for read-only access instead.
 ---
 
 ## Checklist before you submit
