@@ -63,6 +63,11 @@ class Config:
         return {"course": "itcs355", "student": self.project_id, "lab": str(lab)}
 
 
+def _resolve_mlflow_uri(raw: str) -> str:
+    if raw.startswith("azureml://"):
+        return "sqlite:///mlflow.db"
+    return raw
+
 def load(strict: bool = True) -> Config:
     missing = [s for s in CAPABILITY_SLOTS if not os.environ.get(s)]
     if missing and strict:
@@ -77,7 +82,7 @@ def load(strict: bool = True) -> Config:
         region=get("REGION", "unset"),
         blob_uri=get("BLOB_URI", ""),
         container_registry=get("CONTAINER_REGISTRY", ""),
-        mlflow_tracking_uri=get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"),
+        mlflow_tracking_uri=_resolve_mlflow_uri(get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")),
         model_registry_name=get("MODEL_REGISTRY_NAME", "itcs355"),
         identity_ref=get("IDENTITY_REF", ""),
     )
