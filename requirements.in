@@ -15,3 +15,5 @@ httpx2==2.12.0
 azure-storage-blob
 azure-identity
 azureml-mlflow
+mlflow<3.0,>=2.14
+azureml-mlflow>=1.58,<2
