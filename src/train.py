@@ -1,3 +1,4 @@
+import os
 """Training entry point.
 
 Run locally:      python -m src.train --n-estimators 200 --max-depth 8
@@ -43,6 +44,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--run-name", default=None)
     p.add_argument("--metrics-out", type=Path, default=None,
                    help="Write final metrics as JSON. Used by `make verify`.")
+    p.add_argument("--data-uri", default=None,
+                   help="If set, download training data from this URI via the cloud adapter "
+                        "instead of reading a local path. Used by managed training jobs.")
     return p.parse_args()
 
 
@@ -51,9 +55,19 @@ def main() -> None:
     cfg = config.load(strict=False)
     seed = seeds.set_all(args.seed)
 
-    df = data.load_raw(cfg.raw_path)
-    fingerprint = data.data_fingerprint(cfg.raw_path)
+    if args.data_uri:
+        from cloudlayer.factory import get_adapter
+        local_tmp = cfg.data_dir / "raw" / "sensors.csv"
+        get_adapter(cfg).download(args.data_uri, str(local_tmp))
+        data_path = local_tmp
+    else:
+        data_path = cfg.raw_path
+
+    df = data.load_raw(data_path)
+    fingerprint = data.data_fingerprint(data_path)
+
     train_df, val_df, test_df = data.split(df, seed=seed)
+    os.environ.pop("MLFLOW_RUN_ID", None)  # AML injects this to resume its own run; we track locally instead
 
     mlflow.set_tracking_uri(cfg.mlflow_tracking_uri)
     mlflow.set_experiment(args.experiment)
