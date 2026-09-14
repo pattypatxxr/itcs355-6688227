@@ -23,6 +23,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from cloudlayer.base import CloudAdapter
+import time
 
 
 def _parse_blob_uri(blob_uri: str) -> tuple[str, str, str]:
@@ -91,6 +92,89 @@ class AzureAdapter(CloudAdapter):
         return matches[0]
 
     # submit_training / register_model  -> Lab 2 (Azure ML command job + model registry)
+
+    def _ml_client(self):
+        import os
+        from azure.ai.ml import MLClient
+        from azure.identity import DefaultAzureCredential
+
+        return MLClient(
+            DefaultAzureCredential(),
+            subscription_id=os.environ["AZURE_SUBSCRIPTION_ID"],
+            resource_group_name=os.environ["AZURE_RESOURCE_GROUP"],
+            workspace_name=os.environ["AZURE_WORKSPACE_NAME"],
+        )
+
+    def submit_training(self, image_uri: str, args: dict[str, Any]) -> str:
+        import os
+        from azure.ai.ml import command
+
+        ml_client = self._ml_client()
+
+        flags = " ".join(f"--{k.replace('_', '-')} {v}" for k, v in args.items())
+        cmd_str = f"python -m src.train {flags}"
+
+        from azure.ai.ml.entities import Environment
+
+        env = Environment(image=image_uri)
+
+        job = command(
+            command=cmd_str,
+            environment=env,
+            compute=os.environ["AZURE_COMPUTE_NAME"],
+            tags=self.cfg.tags(2),
+            display_name="lab2-training",
+            experiment_name="itcs355-lab2",
+	    environment_variables={
+                "CLOUD_PROVIDER": self.cfg.provider,
+                "PROJECT_ID": self.cfg.project_id,
+                "REGION": self.cfg.region,
+                "BLOB_URI": self.cfg.blob_uri,
+                "CONTAINER_REGISTRY": self.cfg.container_registry,
+                "MLFLOW_TRACKING_URI": self.cfg.mlflow_tracking_uri,
+                "MODEL_REGISTRY_NAME": self.cfg.model_registry_name,
+                "IDENTITY_REF": self.cfg.identity_ref,
+                "AZURE_SUBSCRIPTION_ID": os.environ["AZURE_SUBSCRIPTION_ID"],
+                "AZURE_RESOURCE_GROUP": os.environ["AZURE_RESOURCE_GROUP"],
+                "AZURE_WORKSPACE_NAME": os.environ["AZURE_WORKSPACE_NAME"],
+            },
+        )
+
+        returned_job = ml_client.jobs.create_or_update(job)
+        return returned_job.name  # job_id
+
+    def wait_training(self, job_id: str) -> dict[str, Any]:
+        ml_client = self._ml_client()
+
+        terminal_states = {"Completed", "Failed", "Canceled"}
+        job = ml_client.jobs.get(job_id)
+        while job.status not in terminal_states:
+            time.sleep(20)
+            job = ml_client.jobs.get(job_id)
+
+        if job.status == "Failed":
+            raise RuntimeError(f"Training job {job_id} failed. Check `az ml job show -n {job_id}` for details.")
+
+        return {
+            "job_id": job_id,
+            "status": job.status,
+            "model_uri": f"azureml://jobs/{job_id}/outputs/artifacts/paths/model",
+        }
+
+    def register_model(self, model_uri: str, name: str, tags: dict[str, str] | None = None) -> str:
+        from azure.ai.ml.entities import Model
+        from azure.ai.ml.constants import AssetTypes
+
+        ml_client = self._ml_client()
+
+        model = Model(
+            path=model_uri,
+            name=name,
+            type=AssetTypes.CUSTOM_MODEL,
+            tags=tags or {},
+        )
+        registered = ml_client.models.create_or_update(model)
+        return f"{registered.name}:{registered.version}"
     # deploy / invoke                   -> Lab 3 (managed online endpoint + deployment)
     # emit_metric                       -> Lab 4 (Azure Monitor custom metric)
     # generate                          -> Lab 5 (managed LLM endpoint; read the usage block for tokens)
