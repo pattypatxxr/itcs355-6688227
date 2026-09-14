@@ -1,4 +1,3 @@
-import os
 """Training entry point.
 
 Run locally:      python -m src.train --n-estimators 200 --max-depth 8
@@ -9,6 +8,7 @@ the data fingerprint, and the Git commit. A metric that cannot be traced to code
 data is not evidence of anything.
 """
 from __future__ import annotations
+import os
 
 import argparse
 import json
