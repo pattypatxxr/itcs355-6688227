@@ -73,8 +73,11 @@ def main() -> None:
     os.environ.pop("MLFLOW_RUN_ID", None)  # AML injects this to resume its own run; we track locally instead
 
     mlflow.set_tracking_uri(cfg.mlflow_tracking_uri)
-    mlflow.set_experiment(args.experiment)
-
+    if not os.environ.get("MLFLOW_RUN_ID"):
+        mlflow.set_experiment(args.experiment)
+    else:
+        print(f"[train.py] MLFLOW_RUN_ID={os.environ['MLFLOW_RUN_ID']} detected "
+              f"(Azure ML job run) — skip set_experiment()")
     with mlflow.start_run(run_name=args.run_name) as run:
         mlflow_run_id = run.info.run_id
         mlflow.log_params({
