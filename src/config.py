@@ -64,7 +64,11 @@ class Config:
 
 
 def _resolve_mlflow_uri(raw: str) -> str:
-    if raw.startswith("azureml://"):
+    # AML injects this automatically inside every compute job's container, where
+    # azureml-mlflow isn't installed and mlflow can't resolve the scheme. Only
+    # override there (AZUREML_RUN_ID is only ever set inside a running AML job) —
+    # a workstation running reload_check.py must see the real URI to reach the registry.
+    if raw.startswith("azureml://") and "AZUREML_RUN_ID" in os.environ:
         return "sqlite:///mlflow.db"
     return raw
 
