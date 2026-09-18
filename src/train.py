@@ -109,8 +109,8 @@ def main() -> None:
             metrics[f"{name}_pr_auc"] = float(average_precision_score(part[data.TARGET], proba))
         mlflow.log_metrics(metrics)
         mlflow.sklearn.log_model(model, name="model")
-    	if args.model_out:
-        	mlflow.sklearn.save_model(model, str(args.model_out))
+        if args.model_out:
+            mlflow.sklearn.save_model(model, str(args.model_out))
 
         print(json.dumps({"seed": seed, "data_fingerprint": fingerprint, **metrics}, indent=2))
         if args.metrics_out:
