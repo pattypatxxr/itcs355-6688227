@@ -131,7 +131,7 @@ def main() -> None:
             job_id = adapter.submit_training(image_uri, trial_args)
             try:
                 outcome = adapter.wait_training(job_id)
-                status = str(outcome["status"])
+                status = getattr(outcome["status"], "value", str(outcome["status"]))
             except RuntimeError as exc:
                 status, outcome = "Failed", {"status": "Failed"}
                 print(f"[trial {i}] job failed: {exc}")
