@@ -107,12 +107,12 @@ class AzureAdapter(CloudAdapter):
 
     def submit_training(self, image_uri: str, args: dict[str, Any]) -> str:
         import os
-        from azure.ai.ml import command
+        from azure.ai.ml import command, Output
 
         ml_client = self._ml_client()
 
         flags = " ".join(f"--{k.replace('_', '-')} {v}" for k, v in args.items())
-        cmd_str = f"python -m src.train {flags}"
+        cmd_str = f"python -m src.train {flags} --model-out \${{{{outputs.model}}}}"
 
         from azure.ai.ml.entities import Environment
 
@@ -125,6 +125,7 @@ class AzureAdapter(CloudAdapter):
             tags=self.cfg.tags(2),
             display_name="lab2-training",
             experiment_name="itcs355-lab2",
+            outputs={"model": Output(type="uri_folder")},
 	    environment_variables={
                 "CLOUD_PROVIDER": self.cfg.provider,
                 "PROJECT_ID": self.cfg.project_id,
@@ -158,7 +159,7 @@ class AzureAdapter(CloudAdapter):
         return {
             "job_id": job_id,
             "status": job.status,
-            "model_uri": f"azureml://jobs/{job_id}/outputs/artifacts/paths/model",
+            "model_uri": f"azureml://jobs/{job_id}/outputs/model",
         }
 
     def register_model(self, model_uri: str, name: str, tags: dict[str, str] | None = None) -> str:

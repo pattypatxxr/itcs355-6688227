@@ -47,6 +47,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--data-uri", default=None,
                    help="If set, download training data from this URI via the cloud adapter "
                         "instead of reading a local path. Used by managed training jobs.")
+    p.add_argument("--model-out", type=Path, default=None,
+                   help="If set, also save the fitted model here (used by managed "
+                        "training jobs so the model artifact is captured as a job output).")
     return p.parse_args()
 
 
@@ -106,6 +109,8 @@ def main() -> None:
             metrics[f"{name}_pr_auc"] = float(average_precision_score(part[data.TARGET], proba))
         mlflow.log_metrics(metrics)
         mlflow.sklearn.log_model(model, name="model")
+    if args.model_out:
+        mlflow.sklearn.save_model(model, str(args.model_out))
 
         print(json.dumps({"seed": seed, "data_fingerprint": fingerprint, **metrics}, indent=2))
         if args.metrics_out:
