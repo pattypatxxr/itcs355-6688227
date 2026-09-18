@@ -5,7 +5,6 @@
 scikit-learn==1.8.0
 pandas==3.0.2
 numpy==2.4.4
-mlflow==3.16.0
 pytest==9.1.1
 PyYAML==6.0.3
 joblib==1.4.2
@@ -14,6 +13,6 @@ fastapi==0.141.1
 httpx2==2.12.0
 azure-storage-blob
 azure-identity
-azureml-mlflow
-mlflow<3.0,>=2.14
-azureml-mlflow>=1.58,<2
+mlflow==3.16.0
+mlflow==3.16.0
+requests
