@@ -75,7 +75,8 @@ def main() -> None:
     mlflow.set_tracking_uri(cfg.mlflow_tracking_uri)
     mlflow.set_experiment(args.experiment)
 
-    with mlflow.start_run(run_name=args.run_name):
+    with mlflow.start_run(run_name=args.run_name) as run:
+        mlflow_run_id = run.info.run_id
         mlflow.log_params({
             "n_estimators": args.n_estimators,
             "max_depth": args.max_depth,
@@ -112,11 +113,13 @@ def main() -> None:
         if args.model_out:
             mlflow.sklearn.save_model(model, str(args.model_out))
 
-        print(json.dumps({"seed": seed, "data_fingerprint": fingerprint, **metrics}, indent=2))
+        result = {"seed": seed, "data_fingerprint": fingerprint,
+                  "mlflow_run_id": mlflow_run_id, **metrics}
+
+        print(json.dumps(result, indent=2))
         if args.metrics_out:
             args.metrics_out.parent.mkdir(parents=True, exist_ok=True)
-            args.metrics_out.write_text(json.dumps(
-                {"seed": seed, "data_fingerprint": fingerprint, **metrics}, indent=2))
+            args.metrics_out.write_text(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":
