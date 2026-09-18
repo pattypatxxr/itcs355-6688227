@@ -70,8 +70,6 @@ def main() -> None:
     fingerprint = data.data_fingerprint(data_path)
 
     train_df, val_df, test_df = data.split(df, seed=seed)
-    os.environ.pop("MLFLOW_RUN_ID", None)  # AML injects this to resume its own run; we track locally instead
-
     mlflow.set_tracking_uri(cfg.mlflow_tracking_uri)
     if not os.environ.get("MLFLOW_RUN_ID"):
         mlflow.set_experiment(args.experiment)
