@@ -1,0 +1,242 @@
+[
+  {
+    "trial": 0,
+    "job_id": "tidy_ghost_4z2dn4m6xg",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 100,
+      "max-depth": 4,
+      "min-samples-leaf": 1
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 297.25202028500007,
+    "estimated_cost_thb": 0.2972520202850001,
+    "cumulative_cost_thb": 0.2972520202850001,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.8424390505441984,
+    "val_pr_auc": 0.3937865637116728,
+    "test_roc_auc": 0.8518038253137591,
+    "test_pr_auc": 0.4942206749154695
+  },
+  {
+    "trial": 1,
+    "job_id": "amusing_lock_zcpjk792r7",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 100,
+      "max-depth": 4,
+      "min-samples-leaf": 5
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 76.16328132000035,
+    "estimated_cost_thb": 0.07616328132000036,
+    "cumulative_cost_thb": 0.37341530160500047,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.84259989736441,
+    "val_pr_auc": 0.3932308835337653,
+    "test_roc_auc": 0.8532857870606215,
+    "test_pr_auc": 0.49652572003414885
+  },
+  {
+    "trial": 2,
+    "job_id": "affable_river_p3r1319y0s",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 100,
+      "max-depth": 8,
+      "min-samples-leaf": 1
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 76.71304969999983,
+    "estimated_cost_thb": 0.07671304969999983,
+    "cumulative_cost_thb": 0.4501283513050003,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.8311874325017808,
+    "val_pr_auc": 0.38299118861143044,
+    "test_roc_auc": 0.8487605110121668,
+    "test_pr_auc": 0.4705254485859324
+  },
+  {
+    "trial": 3,
+    "job_id": "coral_stamp_lxn55044sf",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 100,
+      "max-depth": 8,
+      "min-samples-leaf": 5
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 74.32983118499988,
+    "estimated_cost_thb": 0.07432983118499988,
+    "cumulative_cost_thb": 0.5244581824900002,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.8396969952282112,
+    "val_pr_auc": 0.40629248644155647,
+    "test_roc_auc": 0.84655741609384,
+    "test_pr_auc": 0.4674569671696359
+  },
+  {
+    "trial": 4,
+    "job_id": "jovial_giraffe_jj8zz756gn",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 100,
+      "max-depth": 12,
+      "min-samples-leaf": 1
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 74.30982050700004,
+    "estimated_cost_thb": 0.07430982050700005,
+    "cumulative_cost_thb": 0.5987680029970003,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.8268292496112868,
+    "val_pr_auc": 0.3897741780060529,
+    "test_roc_auc": 0.8414830202909673,
+    "test_pr_auc": 0.4572392917048074
+  },
+  {
+    "trial": 5,
+    "job_id": "stoic_airport_771xg7y4pt",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 100,
+      "max-depth": 12,
+      "min-samples-leaf": 5
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 75.3968604329998,
+    "estimated_cost_thb": 0.07539686043299981,
+    "cumulative_cost_thb": 0.6741648634300001,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.8321678321678322,
+    "val_pr_auc": 0.3794040041357941,
+    "test_roc_auc": 0.8417344245158815,
+    "test_pr_auc": 0.47110621566466454
+  },
+  {
+    "trial": 6,
+    "job_id": "bubbly_store_ms9xv7k0cj",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 200,
+      "max-depth": 4,
+      "min-samples-leaf": 1
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 76.3594924009999,
+    "estimated_cost_thb": 0.0763594924009999,
+    "cumulative_cost_thb": 0.7505243558310001,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.8398808201655956,
+    "val_pr_auc": 0.3858417741489405,
+    "test_roc_auc": 0.8535239594842243,
+    "test_pr_auc": 0.5006265347201325
+  },
+  {
+    "trial": 7,
+    "job_id": "loving_bee_6nvqx6k293",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 200,
+      "max-depth": 4,
+      "min-samples-leaf": 5
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 74.59481043799997,
+    "estimated_cost_thb": 0.07459481043799997,
+    "cumulative_cost_thb": 0.8251191662690001,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.8404552730949226,
+    "val_pr_auc": 0.38666780836608866,
+    "test_roc_auc": 0.8543112516622451,
+    "test_pr_auc": 0.49958779733003233
+  },
+  {
+    "trial": 8,
+    "job_id": "jolly_feather_5bsz0kfvcd",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 200,
+      "max-depth": 8,
+      "min-samples-leaf": 1
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 74.00607004299991,
+    "estimated_cost_thb": 0.0740060700429999,
+    "cumulative_cost_thb": 0.8991252363119999,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.8318155010378451,
+    "val_pr_auc": 0.38614589705772095,
+    "test_roc_auc": 0.8482841661649609,
+    "test_pr_auc": 0.47247966982212053
+  },
+  {
+    "trial": 9,
+    "job_id": "stoic_engine_s3d5jj6321",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 200,
+      "max-depth": 8,
+      "min-samples-leaf": 5
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 73.45088782799985,
+    "estimated_cost_thb": 0.07345088782799986,
+    "cumulative_cost_thb": 0.9725761241399997,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.8363728276105056,
+    "val_pr_auc": 0.3963091530665979,
+    "test_roc_auc": 0.8482378548603715,
+    "test_pr_auc": 0.4776221420444084
+  },
+  {
+    "trial": 10,
+    "job_id": "maroon_whistle_9ypx9c4ly2",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 200,
+      "max-depth": 12,
+      "min-samples-leaf": 1
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 74.55631260100017,
+    "estimated_cost_thb": 0.07455631260100017,
+    "cumulative_cost_thb": 1.047132436741,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.8266760621634663,
+    "val_pr_auc": 0.38900632713627803,
+    "test_roc_auc": 0.838108910956593,
+    "test_pr_auc": 0.45335390943359766
+  },
+  {
+    "trial": 11,
+    "job_id": "maroon_fox_rvwl8hdhjp",
+    "status": "Completed",
+    "hyperparameters": {
+      "n-estimators": 200,
+      "max-depth": 12,
+      "min-samples-leaf": 5
+    },
+    "instance_type": "Standard_DS3_v2",
+    "wall_clock_seconds": 72.8368481399998,
+    "estimated_cost_thb": 0.0728368481399998,
+    "cumulative_cost_thb": 1.119969284881,
+    "seed": 20260101,
+    "data_fingerprint": "422cccb9136e8140",
+    "val_roc_auc": 0.8352086030070696,
+    "val_pr_auc": 0.37732996457263257,
+    "test_roc_auc": 0.8423728589291504,
+    "test_pr_auc": 0.4679965405046805
+  }
+]

@@ -12,6 +12,7 @@ mlartifacts/
 mlflow.db
 
 reports/*.json
+!reports/lab2-tuning.json
 reports/*.joblib
 __pycache__/
 *.pyc
