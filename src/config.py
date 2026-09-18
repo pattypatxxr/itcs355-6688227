@@ -64,12 +64,15 @@ class Config:
 
 
 def _resolve_mlflow_uri(raw: str) -> str:
-    # AML injects this automatically inside every compute job's container, where
-    # azureml-mlflow isn't installed and mlflow can't resolve the scheme. Only
-    # override there (AZUREML_RUN_ID is only ever set inside a running AML job) —
-    # a workstation running reload_check.py must see the real URI to reach the registry.
-    if raw.startswith("azureml://") and "AZUREML_RUN_ID" in os.environ:
-        return "sqlite:///mlflow.db"
+    if raw.startswith("azureml://"):
+        try:
+            import azureml.mlflow  # noqa: F401
+        except ImportError as e:
+            raise RuntimeError(
+                "Tracking URI เป็น azureml:// แต่ import azureml.mlflow ไม่ได้ — "
+                "ต้องติดตั้ง azureml-mlflow ก่อน (จะไม่ fallback ไป sqlite แบบเงียบ ๆ)"
+            ) from e
+        return raw
     return raw
 
 def load(strict: bool = True) -> Config:
