@@ -33,6 +33,13 @@ portability-audit: ## Fail if provider strings leak into src/
 train: ## Train locally, outside the container
 	python -m src.train --seed $(SEED) --metrics-out reports/metrics.json
 
+train-remote: ## adapter.submit_training(image_uri, args) -> job_id, then wait
+	python -c "from src import config; from cloudlayer.factory import get_adapter; \
+	cfg=config.load(); a=get_adapter(cfg); \
+	job_id=a.submit_training('$(IMAGE_URI)', {'n-estimators':200,'max-depth':8,'min-samples-leaf':5,'data-uri':'$(DATA_URI)'}); \
+	print('JOB_ID='+job_id); \
+	print(a.wait_training(job_id))"
+
 image: ## Build the training image for linux/amd64
 	docker buildx build --platform $(PLATFORM) -t $(IMAGE):$(TAG) --load .
 
@@ -63,7 +70,7 @@ tune: ## Budgeted hyperparameter study (>=12 trials)
 	python -m src.tune --trials 12 --budget-thb 150
 
 compare: ## Rank runs by metric and by cost per point
-	python scripts/compare_runs.py --experiment itcs355-lab2
+	PYTHONPATH=. python scripts/compare_runs.py
 
 reload-check: ## Load the registered model by version and score rows
 	python scripts/reload_check.py --name $(MODEL_REGISTRY_NAME) --version $(VERSION)
