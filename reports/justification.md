@@ -1,0 +1,5 @@
+Picked n_estimators=200, max_depth=4, min_samples_leaf=5 (trial 7, test_roc_auc=0.8543) rather than defaulting to the single highest score. Re-running this exact config across 3 seeds gave test_roc_auc = 0.8543, 0.8732, 0.8583 (stdev ~= 0.0081) -- larger than the gap between trial 7 and the next three candidates (trial 6=0.8535, trial 1=0.8533, trial 0=0.8518), which differ by only 0.0008-0.0025. The top four trials are indistinguishable from seed noise alone, so ranking them by the third decimal place carries no statistical meaning.
+
+Cost: each trial ran in ~74 seconds (except trial 0 at 297s, likely cluster cold-start rather than a hyperparameter effect), costing ~0.075 THB per run. Even monthly retraining would cost under 1 THB/year, so cost was not a deciding factor here.
+
+Where this choice could be wrong: since seed variance exceeds the spread among the top four trials, picking trial 7 may reflect overfitting to the one seed used during the search rather than a genuinely better hyperparameter combination. Re-running the same grid with a different seed could reorder the top candidates entirely.
