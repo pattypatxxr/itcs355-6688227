@@ -66,6 +66,11 @@ class Config:
 def _resolve_mlflow_uri(raw: str) -> str:
     if raw.startswith("azureml://"):
         try:
+            import collections
+            import collections.abc
+            for _name in ("Iterable", "Mapping", "MutableMapping", "Sequence"):
+                if not hasattr(collections, _name):
+                    setattr(collections, _name, getattr(collections.abc, _name))
             import azureml.mlflow  # noqa: F401
         except ImportError as e:
             raise RuntimeError(
