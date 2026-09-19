@@ -28,3 +28,4 @@ job_logs/
 job_properties.json
 outputs/
 job_dl/
+!reports/lab2-comparison.json
