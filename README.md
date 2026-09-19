@@ -165,3 +165,11 @@ Required evidence before promotion:
 - Reported test metric matches what `reload_check.py` independently reproduces
 - Comparison/justification artifact in `reports/` explaining why this version was
   chosen over the highest-scoring alternative (if different)
+
+**Quota increase request result:** Submitted via Azure ML Studio portal
+(Low priority cores, requested limit: 4). Rejected immediately with:
+"Your subscription isn't eligible for a quota increase. To request a quota
+increase, first upgrade to a Pay-As-You-Go subscription." This confirms the
+constraint is a hard restriction of the Azure for Students subscription tier,
+not a per-family or per-region limitation, and not something resolvable
+without a subscription type change outside the scope of this course.
