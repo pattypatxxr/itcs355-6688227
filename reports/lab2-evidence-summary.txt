@@ -1,0 +1,85 @@
+==================================================
+LAB 2 EVIDENCE SUMMARY
+Generated: Sat Sep 19 20:51:49 +07 2026
+==================================================
+
+--- 1. Git commit history (chronological) ---
+1d7a600 docs: add checkpoint/resume evidence log
+fcac5c4 docs: record quota increase rejection (Azure for Students ineligible)
+8672128 feat: add trial-level checkpoint/resume to tune.py
+1045d1e chore: ignore old-schema mlflow backup
+76ead5b docs: add model promotion ownership note
+1662e57 docs: rewrite justification for trial 1; refresh lab2 comparison
+a254d6e fix: parse first JSON blob in tune.py; fix promote in register_model.py; add lab2 tuning results
+aed55b2 fix: trust sklearn.tree._tree.Tree when saving RandomForest via skops
+2a42bdc fix: drop mlflow.sklearn.log_model (404 on Azure ML logged-models endpoint); model saved via save_model to job output
+98f43c0 fix: pin mlflow==3.15.0 (3.16.0 breaks azureml-mlflow rest_store import); collections.abc shim for py3.11
+
+--- 2. Git status (working tree clean check) ---
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	reports/lab2-evidence-summary.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+--- 3. Current commit SHA used for lineage ---
+1d7a60055e637e8a6ad4ecbec827be246a52aa7c
+
+--- 4. Registered model lineage tags (version 2) ---
+Model: itcs355-6688227
+Version: 2
+Tags:
+  data_version: 1c886b512c8a5c9bf723da1cd119fc80
+  git_commit: 1662e5753cf623fc7a4b1cd2f6825dbcad07da00
+  image_digest: itcs3556688227.azurecr.io/itcs355@sha256:bfc6b5a3de550bc0369c93ef06046956b2563ab8d1fbe0f26c39344e2a139bf0
+  metric_test: 0.8532857870606215
+  metric_val: 0.84259989736441
+  mlflow_run_id: lemon_shoe_0l58mgzw83
+  seed: 20260101
+  training_job_id: lemon_shoe_0l58mgzw83
+
+--- 5. Checkpoint/resume evidence log exists ---
+-rw-r--r-- 1 torpat torpat 2271 Sep 19 20:51 reports/checkpoint-resume-evidence.log
+
+--- 6. Checkpoint/resume evidence log content (resume proof) ---
+[resume] found reports/lab2-tuning-test.json, 3 trial(s) already done: [0, 1, 2]
+[trial 0] already completed, skipping
+[trial 1] already completed, skipping
+[trial 2] already completed, skipping
+
+--- 7. README.md sections related to Lab 2 deliverables ---
+## Model Promotion — Ownership
+
+In a real organisation, promotion from Development → Production stage should be
+performed by someone outside the individual contributor who trained the model —
+for example, an ML platform lead, MLOps engineer, or a designated model owner role
+with accountability for production reliability. It should not be the same person
+...
+**Quota increase request result:** Submitted via Azure ML Studio portal
+(Low priority cores, requested limit: 4). Rejected immediately with:
+"Your subscription isn't eligible for a quota increase. To request a quota
+increase, first upgrade to a Pay-As-You-Go subscription." This confirms the
+constraint is a hard restriction of the Azure for Students subscription tier,
+not a per-family or per-region limitation, and not something resolvable
+without a subscription type change outside the scope of this course.
+
+--- 8. tune.py checkpoint/resume logic present ---
+114:    completed_indices: set[int] = set()
+118:            completed_indices = {r["trial"] for r in results if r.get("status") == "Completed"}
+119:            print(f"[resume] found {args.out}, {len(completed_indices)} trial(s) already done: {sorted(completed_indices)}")
+121:            print(f"[resume] could not parse {args.out} ({exc}), starting fresh")
+122:            results, completed_indices = [], set()
+130:            if i in completed_indices:
+182:            print(f"[checkpoint] saved after trial {i} ({len(results)} record(s) in {args.out})")
+
+--- 9. Confirm remote sync (pushed to origin) ---
+1d7a600 docs: add checkpoint/resume evidence log
+1d7a60055e637e8a6ad4ecbec827be246a52aa7c
+1d7a60055e637e8a6ad4ecbec827be246a52aa7c
+
+==================================================
+END OF EVIDENCE SUMMARY
+==================================================
