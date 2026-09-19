@@ -111,10 +111,25 @@ def main() -> None:
         raise ValueError(f"grid only has {len(grid)} combos, need >= {args.trials}")
 
     results: list[dict[str, Any]] = []
-    cumulative_cost_thb = 0.0
+    completed_indices: set[int] = set()
+    if args.out.exists():
+        try:
+            results = json.loads(args.out.read_text())
+            completed_indices = {r["trial"] for r in results if r.get("status") == "Completed"}
+            print(f"[resume] found {args.out}, {len(completed_indices)} trial(s) already done: {sorted(completed_indices)}")
+        except Exception as exc:  # noqa: BLE001
+            print(f"[resume] could not parse {args.out} ({exc}), starting fresh")
+            results, completed_indices = [], set()
+
+    cumulative_cost_thb = sum(
+        r.get("estimated_cost_thb", 0.0) for r in results if r.get("status") == "Completed"
+    )
 
     try:
         for i, hp in enumerate(grid[: args.trials]):
+            if i in completed_indices:
+                print(f"[trial {i}] already completed, skipping")
+                continue
             if cumulative_cost_thb >= args.budget_thb:
                 print(f"STOP: budget of {args.budget_thb} THB reached after {i} trials")
                 break
@@ -162,6 +177,10 @@ def main() -> None:
             results.append(record)
             print(json.dumps(record, indent=2))
             print(f"[trial {i}] cumulative cost: {cumulative_cost_thb:.2f} / {args.budget_thb} THB")
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(json.dumps(results, indent=2))
+            print(f"[checkpoint] saved after trial {i} ({len(results)} record(s) in {args.out})")
+
     finally:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(results, indent=2))
