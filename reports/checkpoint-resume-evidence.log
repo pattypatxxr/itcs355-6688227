@@ -1,0 +1,39 @@
+Class AutoDeleteSettingSchema: This is an experimental class, and may change at any time. Please see https://aka.ms/azuremlexperimental for more information.
+Class AutoDeleteConditionSchema: This is an experimental class, and may change at any time. Please see https://aka.ms/azuremlexperimental for more information.
+Class BaseAutoDeleteSettingSchema: This is an experimental class, and may change at any time. Please see https://aka.ms/azuremlexperimental for more information.
+Class IntellectualPropertySchema: This is an experimental class, and may change at any time. Please see https://aka.ms/azuremlexperimental for more information.
+Class ProtectionLevelSchema: This is an experimental class, and may change at any time. Please see https://aka.ms/azuremlexperimental for more information.
+Class BaseIntellectualPropertySchema: This is an experimental class, and may change at any time. Please see https://aka.ms/azuremlexperimental for more information.
+WARN: could not fetch live price (no matching SKU returned by retail price API); using fallback estimate
+Estimated price: 3.60 THB/hr for Standard_DS3_v2 (japanwest)
+[resume] found reports/lab2-tuning-test.json, 3 trial(s) already done: [0, 1, 2]
+[trial 0] already completed, skipping
+[trial 1] already completed, skipping
+[trial 2] already completed, skipping
+[trial 3] submitting: {'n-estimators': 100, 'max-depth': 8, 'min-samples-leaf': 5}
+{
+  "trial": 3,
+  "job_id": "zen_cheese_lswfhlgp14",
+  "status": "Completed",
+  "hyperparameters": {
+    "n-estimators": 100,
+    "max-depth": 8,
+    "min-samples-leaf": 5
+  },
+  "instance_type": "Standard_DS3_v2",
+  "wall_clock_seconds": 295.1910909299986,
+  "estimated_cost_thb": 0.29519109092999857,
+  "cumulative_cost_thb": 0.751894259976998,
+  "seed": 20260101,
+  "data_fingerprint": "422cccb9136e8140",
+  "mlflow_run_id": "zen_cheese_lswfhlgp14",
+  "val_roc_auc": 0.8396969952282112,
+  "val_pr_auc": 0.40629248644155647,
+  "test_roc_auc": 0.84655741609384,
+  "test_pr_auc": 0.4674569671696359
+}
+[trial 3] cumulative cost: 0.75 / 150.0 THB
+[checkpoint] saved after trial 3 (4 record(s) in reports/lab2-tuning-test.json)
+
+Wrote 4 trial records to reports/lab2-tuning-test.json
+WARNING: only 4 trials completed (lab requires >= 12) — check budget/errors above
