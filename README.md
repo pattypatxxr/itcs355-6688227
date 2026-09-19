@@ -147,3 +147,21 @@ not just the model. That makes runs incomparable, which defeats the entire point
 
 That last check is not optional. A credential in Git history is an automatic deduction in this
 course, and rotating it is your responsibility, not the grader's.
+
+## Model Promotion — Ownership
+
+In a real organisation, promotion from Development → Production stage should be
+performed by someone outside the individual contributor who trained the model —
+for example, an ML platform lead, MLOps engineer, or a designated model owner role
+with accountability for production reliability. It should not be the same person
+who ran the training trials, since self-approval removes the independent check
+promotion is meant to provide.
+
+Required evidence before promotion:
+- `reload_check.py` runs clean against the registered version (not a local file)
+  and scores held-out rows successfully
+- All 8 lineage fields present on the registered version: git_commit, data_version,
+  mlflow_run_id, training_job_id, image_digest, seed, metric_val, metric_test
+- Reported test metric matches what `reload_check.py` independently reproduces
+- Comparison/justification artifact in `reports/` explaining why this version was
+  chosen over the highest-scoring alternative (if different)
