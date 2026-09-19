@@ -86,7 +86,7 @@ def fetch_trial_result(job_id: str, resource_group: str, workspace: str) -> dict
         text = candidates[0].read_text()
         last_brace = text.rfind("\n{")
         json_blob = text[last_brace:] if last_brace != -1 else text
-        return json.loads(json_blob)
+        return json.JSONDecoder().raw_decode(json_blob.strip())[0]
 
 
 def main() -> None:

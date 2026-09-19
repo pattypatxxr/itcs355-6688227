@@ -24,3 +24,7 @@ __pycache__/
 
 # ruff cache
 .ruff_cache/
+job_logs/
+job_properties.json
+outputs/
+job_dl/
