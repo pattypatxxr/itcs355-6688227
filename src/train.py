@@ -111,7 +111,7 @@ def main() -> None:
             metrics[f"{name}_pr_auc"] = float(average_precision_score(part[data.TARGET], proba))
         mlflow.log_metrics(metrics)
         if args.model_out:
-            mlflow.sklearn.save_model(model, str(args.model_out))
+            mlflow.sklearn.save_model(model, str(args.model_out), skops_trusted_types=["sklearn.tree._tree.Tree"])
 
         result = {"seed": seed, "data_fingerprint": fingerprint,
                   "mlflow_run_id": mlflow_run_id, **metrics}
