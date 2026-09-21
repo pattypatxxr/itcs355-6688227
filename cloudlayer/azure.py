@@ -241,6 +241,7 @@ class AzureAdapter(CloudAdapter):
 
         # Environment without Log Analytics: it would be an untagged resource that teardown misses.
         self._az("containerapp", "env", "create", "-n", env_name, "-g", rg, "-l", region,
+                 "--environment-mode", "ConsumptionOnly",
                  "--logs-destination", "none", "--tags", *tag_args)
         env_id = self._az("containerapp", "env", "show", "-n", env_name, "-g", rg, "--query", "id")
 
@@ -292,15 +293,35 @@ class AzureAdapter(CloudAdapter):
             json.dump(spec, f)
             spec_path = f.name
 
+        url = (f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+               f"/providers/Microsoft.App/containerApps/{endpoint}?api-version=2024-03-01")
         time.sleep(30)  # role assignments take a while to propagate
-        for attempt in range(1, 6):
-            r = subprocess.run(["az", "containerapp", "create", "-n", endpoint, "-g", rg, "--yaml", spec_path])
+        for attempt in range(1, 5):
+            r = subprocess.run(
+                ["az", "rest", "--method", "put", "--url", url, "--body", f"@{spec_path}", "-o", "none"],
+                stderr=subprocess.PIPE, text=True,
+            )
             if r.returncode == 0:
                 break
-            print(f"create failed (attempt {attempt}/5), likely role propagation; retrying in 45s")
+            err = r.stderr
+            print(err[-1500:])
+            if not any(k in err.lower() for k in ("authoriz", "permission", "forbidden", "unauthorized", "denied")):
+                raise RuntimeError("containerapp create failed (not a permission issue); see error above")
+            print(f"attempt {attempt}/4 failed, looks like role propagation; retrying in 45s")
             time.sleep(45)
         else:
-            raise RuntimeError("containerapp create failed after 5 attempts")
+            raise RuntimeError("containerapp create failed after 4 attempts")
+
+        # The PUT is asynchronous: wait until provisioning finishes.
+        for _ in range(40):
+            state = self._az("containerapp", "show", "-n", endpoint, "-g", rg,
+                             "--query", "properties.provisioningState")
+            if state == "Succeeded":
+                break
+            if state == "Failed":
+                raise RuntimeError("containerapp provisioning Failed; run: az containerapp logs show -n "
+                                   f"{endpoint} -g {rg} --tail 50")
+            time.sleep(15)
 
         fqdn = self._az("containerapp", "show", "-n", endpoint, "-g", rg,
                         "--query", "properties.configuration.ingress.fqdn")
