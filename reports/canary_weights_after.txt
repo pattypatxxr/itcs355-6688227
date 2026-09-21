@@ -1,0 +1,5 @@
+CreatedTime                Active    Replicas    TrafficWeight    HealthState    ProvisioningState    Name
+-------------------------  --------  ----------  ---------------  -------------  -------------------  ----------------------
+2026-09-21T15:22:20+00:00  True      0           0                Healthy        Provisioned          itcs355-serve--1wquww8
+2026-09-21T17:25:58+00:00  True      1           100              Healthy        Provisioned          itcs355-serve--0000001
+2026-09-21T17:33:27+00:00  True      1           0                None           Provisioned          itcs355-serve--stable2

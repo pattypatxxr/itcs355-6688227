@@ -30,3 +30,5 @@ Throughput peaks at 10 users and plateaus at ~30 rps from 20 users; latency then
 | 1 | 61.2 s | 0.40 s |
 | 2 | 61.1 s | 0.41 s |
 | 3 | 63.1 s | 0.40 s |
+## Breaking point / Batch / Payload / Instance size / Canary / Cost
+(เติมตัวเลขจาก Step 1-6)
