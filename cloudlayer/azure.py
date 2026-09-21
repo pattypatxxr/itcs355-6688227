@@ -203,3 +203,126 @@ class AzureAdapter(CloudAdapter):
             subprocess.run(["az", "resource", "delete", "--ids", r["id"]], check=True)
             deleted.append(r["id"])
         return deleted
+
+    # --- Lab 3: serving on Azure Container Apps -----------------------------
+    # Azure ML managed online endpoints are not used: the student vCPU quota
+    # cannot cover them. Container Apps has no ML core quota and scales to zero.
+
+    @staticmethod
+    def _az(*args: str) -> Any:
+        r = subprocess.run(["az", *args, "-o", "json"], stdout=subprocess.PIPE, text=True, check=True)
+        return json.loads(r.stdout) if r.stdout.strip() else None
+
+    def deploy(self, model_ref: str, endpoint: str, instance: str) -> str:
+        """model_ref='<name>:<version>', endpoint=app name, instance='<cpu>/<memory>' e.g. '0.5/1.0Gi'."""
+        import os
+        import tempfile
+
+        name, _, version = model_ref.partition(":")
+        cpu, _, mem = instance.partition("/")
+        if not version or not mem:
+            raise ValueError("model_ref must be '<name>:<version>' and instance '<cpu>/<memory>'")
+        image = os.environ["SERVE_IMAGE"]
+        if "@sha256:" not in image:
+            raise ValueError("SERVE_IMAGE must be digest-pinned (repo@sha256:...)")
+
+        rg = os.environ["AZURE_RESOURCE_GROUP"]
+        sub = os.environ["AZURE_SUBSCRIPTION_ID"]
+        ws = os.environ["AZURE_WORKSPACE_NAME"]
+        region = self.cfg.region
+        tags = self.cfg.tags(3)
+        tag_args = [f"{k}={v}" for k, v in tags.items()]
+        acr_server = self.cfg.container_registry.split("/")[0]
+        acr_name = acr_server.split(".")[0]
+        env_name, id_name = f"{endpoint}-env", f"{endpoint}-id"
+        base = f"/subscriptions/{sub}/resourceGroups/{rg}/providers"
+        acr_id = f"{base}/Microsoft.ContainerRegistry/registries/{acr_name}"
+        ws_id = f"{base}/Microsoft.MachineLearningServices/workspaces/{ws}"
+
+        # Environment without Log Analytics: it would be an untagged resource that teardown misses.
+        self._az("containerapp", "env", "create", "-n", env_name, "-g", rg, "-l", region,
+                 "--logs-destination", "none", "--tags", *tag_args)
+        env_id = self._az("containerapp", "env", "show", "-n", env_name, "-g", rg, "--query", "id")
+
+        ident = self._az("identity", "create", "-n", id_name, "-g", rg, "-l", region, "--tags", *tag_args)
+        for role, scope in (("AcrPull", acr_id), ("AzureML Data Scientist", ws_id)):
+            self._az("role", "assignment", "create", "--assignee-object-id", ident["principalId"],
+                     "--assignee-principal-type", "ServicePrincipal", "--role", role, "--scope", scope)
+
+        env_vars = {
+            "MODEL_REGISTRY_NAME": name,
+            "MODEL_VERSION": version,
+            "MLFLOW_TRACKING_URI": os.environ.get("MLFLOW_TRACKING_URI", self.cfg.mlflow_tracking_uri),
+            "AZURE_CLIENT_ID": ident["clientId"],  # makes DefaultAzureCredential pick this identity
+        }
+        spec = {
+            "location": region,
+            "tags": tags,
+            "identity": {"type": "UserAssigned", "userAssignedIdentities": {ident["id"]: {}}},
+            "properties": {
+                "environmentId": env_id,
+                "configuration": {
+                    "activeRevisionsMode": "Multiple",  # needed for the Task 4 canary split
+                    "ingress": {
+                        "external": True, "targetPort": 8080, "transport": "auto",
+                        "traffic": [{"latestRevision": True, "weight": 100}],
+                    },
+                    "registries": [{"server": acr_server, "identity": ident["id"]}],
+                },
+                "template": {
+                    "containers": [{
+                        "name": "serve",
+                        "image": image,
+                        "resources": {"cpu": float(cpu), "memory": mem},
+                        "env": [{"name": k, "value": v} for k, v in env_vars.items()],
+                        "probes": [
+                            {"type": "Startup", "httpGet": {"path": "/ready", "port": 8080},
+                             "initialDelaySeconds": 5, "periodSeconds": 10, "failureThreshold": 10},
+                            {"type": "Readiness", "httpGet": {"path": "/ready", "port": 8080},
+                             "periodSeconds": 5, "failureThreshold": 3},
+                            {"type": "Liveness", "httpGet": {"path": "/health", "port": 8080},
+                             "periodSeconds": 10, "failureThreshold": 3},
+                        ],
+                    }],
+                    "scale": {"minReplicas": 0, "maxReplicas": 1},
+                },
+            },
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump(spec, f)
+            spec_path = f.name
+
+        time.sleep(30)  # role assignments take a while to propagate
+        for attempt in range(1, 6):
+            r = subprocess.run(["az", "containerapp", "create", "-n", endpoint, "-g", rg, "--yaml", spec_path])
+            if r.returncode == 0:
+                break
+            print(f"create failed (attempt {attempt}/5), likely role propagation; retrying in 45s")
+            time.sleep(45)
+        else:
+            raise RuntimeError("containerapp create failed after 5 attempts")
+
+        fqdn = self._az("containerapp", "show", "-n", endpoint, "-g", rg,
+                        "--query", "properties.configuration.ingress.fqdn")
+        return f"https://{fqdn}"
+
+    def invoke(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """endpoint may be the app name or the https URL returned by deploy()."""
+        import os
+        import urllib.error
+        import urllib.request
+
+        if endpoint.startswith("http"):
+            base = endpoint.rstrip("/")
+        else:
+            fqdn = self._az("containerapp", "show", "-n", endpoint, "-g", os.environ["AZURE_RESOURCE_GROUP"],
+                            "--query", "properties.configuration.ingress.fqdn")
+            base = f"https://{fqdn}"
+        url = base + ("/predict/batch" if "rows" in payload else "/predict")
+        req = urllib.request.Request(url, data=json.dumps(payload).encode(),
+                                     headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:  # 120s: cold start after scale-to-zero
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            raise RuntimeError(f"{e.code} from {url}: {e.read().decode()[:500]}") from e

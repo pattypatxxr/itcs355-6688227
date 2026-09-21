@@ -115,3 +115,14 @@ cost: ## Build the cost report
 
 swap-check: ## Prove the portability seam against a second provider
 	python scripts/portability_swap_check.py --second-provider $(SECOND)
+
+# --- Lab 3 deploy ---
+ENDPOINT ?= itcs355-serve
+MODEL_REF ?= itcs355-6688227:2
+INSTANCE ?= 0.5/1.0Gi
+
+deploy: ## Deploy the serving image to Container Apps
+	python -c "from src import config; from cloudlayer.factory import get_adapter; cfg=config.load(); print(get_adapter(cfg).deploy('$(MODEL_REF)', '$(ENDPOINT)', '$(INSTANCE)'))"
+
+smoke: ## Invoke the deployed endpoint with three known payloads
+	python scripts/smoke.py $(ENDPOINT)
