@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import random
 
-from locust import HttpUser, between, task
+from locust import HttpUser, between, tag, task
 
 
 def sample_payload() -> dict:
@@ -26,12 +26,14 @@ def sample_payload() -> dict:
 class PredictUser(HttpUser):
     wait_time = between(0.0, 0.1)
 
+    @tag("single")
     @task(9)
     def predict(self):
         with self.client.post("/predict", json=sample_payload(), catch_response=True) as r:
             if r.status_code != 200:
                 r.failure(f"status {r.status_code}")
 
+    @tag("batch")
     @task(1)
     def predict_batch(self):
         rows = [sample_payload() for _ in range(50)]
