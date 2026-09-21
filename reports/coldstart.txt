@@ -1,0 +1,12 @@
+--- round 1: waiting for scale-to-zero ---
+scaled to zero at 23:51:57
+COLD : total=61.173079s ttfb=61.172941s http=200
+warm : total=0.395216s ttfb=0.395119s http=200
+--- round 2: waiting for scale-to-zero ---
+scaled to zero at 23:59:19
+COLD : total=61.123846s ttfb=61.123740s http=200
+warm : total=0.407233s ttfb=0.407165s http=200
+--- round 3: waiting for scale-to-zero ---
+scaled to zero at 00:06:37
+COLD : total=63.095143s ttfb=63.094998s http=200
+warm : total=0.402465s ttfb=0.402317s http=200
