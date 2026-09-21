@@ -84,10 +84,16 @@ serve: ## Run the inference service locally on :8080
 serve-image: ## Build the serving image
 	docker buildx build --platform $(PLATFORM) -f service/Dockerfile.serve -t itcs355-serve:$(TAG) --load .
 
-loadtest: ## Load test at three concurrency levels
+BASE_URL ?=
+
+loadtest: ## Load test at 3 concurrency levels (Locust): make loadtest BASE_URL=https://...
+	@if [ -z "$(BASE_URL)" ]; then echo "ERROR: set BASE_URL, e.g. make loadtest BASE_URL=https://itcs355-serve.lemonmoss-4d9a49c1.japanwest.azurecontainerapps.io"; exit 1; fi
+	@mkdir -p reports/loadtest
 	@for vus in 1 10 50; do \
-	  echo "=== $$vus VUs ==="; \
-	  k6 run -e TARGET=$(TARGET) -e VUS=$$vus loadtest/k6.js || true; \
+	  echo "=== $$vus concurrent users ==="; \
+	  locust -f loadtest/locustfile.py --host $(BASE_URL) \
+	    --users $$vus --spawn-rate $$vus --run-time 60s --headless \
+	    --csv reports/loadtest/vus$$vus --csv-full-history ; \
 	done
 
 # --- Lab 4 -------------------------------------------------------------------
