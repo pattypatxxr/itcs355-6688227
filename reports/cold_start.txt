@@ -1,0 +1,1 @@
+cold_ready_s=51.15 warm_ready_s=0.41 revision=itcs355-serve--0000001 model_version=2 min_replicas=0 measured_approx=2026-09-21T18:42Z
