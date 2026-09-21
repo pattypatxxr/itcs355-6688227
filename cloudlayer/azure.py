@@ -180,3 +180,26 @@ class AzureAdapter(CloudAdapter):
     # emit_metric                       -> Lab 4 (Azure Monitor custom metric)
     # generate                          -> Lab 5 (managed LLM endpoint; read the usage block for tokens)
     # teardown                          -> Lab 5 (resource graph query by tag)
+
+    def teardown(self, tags: dict[str, str]) -> list[str]:
+        """Delete every resource in the lab resource group carrying ALL these tags."""
+        import os
+
+        if not tags or "lab" not in tags:
+            raise ValueError("teardown requires tags including 'lab'; refusing to delete")
+        rg = os.environ["AZURE_RESOURCE_GROUP"]
+        out = subprocess.run(
+            ["az", "resource", "list", "-g", rg, "-o", "json"],
+            check=True, stdout=subprocess.PIPE, text=True,
+        ).stdout
+        found = [
+            r for r in json.loads(out)
+            if all((r.get("tags") or {}).get(k) == v for k, v in tags.items())
+        ]
+        # Container Apps must be deleted before the environment that hosts them.
+        found.sort(key=lambda r: 0 if r["type"].lower() == "microsoft.app/containerapps" else 1)
+        deleted = []
+        for r in found:
+            subprocess.run(["az", "resource", "delete", "--ids", r["id"]], check=True)
+            deleted.append(r["id"])
+        return deleted
