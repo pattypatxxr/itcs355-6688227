@@ -123,3 +123,33 @@ no difference or is slightly worse (scheduling/measurement noise). Cost: see Tas
 1.0 vCPU/2 GiB costs exactly 2x the active-rate of 0.5 vCPU/1 GiB per second, so the
 ~2x throughput gain at 50 users is roughly cost-neutral per prediction at that
 concurrency, while at 10 users upgrading is pure waste.
+
+## Cost per 1,000 predictions (Task 5)
+
+**Instance:** 1.0 vCPU / 2 GiB (current serving instance size)
+**Pricing (Azure Container Apps Consumption, active rate):** $0.000024/vCPU-s + $0.000003/GiB-s
+→ $0.00003/active-second = $0.108/hour while actively serving
+
+**Utilization assumption (stated explicitly, as this is where the number is most
+fragile):** this is a course-lab endpoint with bursty, not continuous, traffic.
+Assume bursts averaging 20 predictions, with the endpoint scaling to zero between
+bursts (matches the actual min-replicas=0 deployment) — i.e. near-worst-case
+utilization, one cold start paid per burst rather than amortized over sustained load.
+
+- Cold start (median 57s of the measured 51-63s range) + 19 warm requests (~0.4s each)
+  = ~64.6s billed active time per 20-prediction burst
+- Cost/burst = 0.00003 $/s × 64.6s ≈ $0.001938 → **≈ $0.097 per 1,000 predictions**
+
+**Sensitivity check** — if traffic were instead continuous enough to keep the
+container warm (no cold starts), using the measured 60.1 rps sustained throughput
+at this instance size: cost ≈ **$0.0005 per 1,000 predictions** — ~200x cheaper.
+The utilization/traffic-pattern assumption dominates the result far more than
+instance size does.
+
+**Batch vs. keeping the endpoint warm:** keeping the endpoint warm 24h costs a
+fixed $0.108/hr × 24 = $2.592/day regardless of volume. At the bursty cost rate
+above (~$0.097/1,000 preds), that fixed cost breaks even at roughly
+2.592 / 0.097 × 1,000 ≈ **26,700 predictions/day** (~1,115/hr). Below that volume,
+scale-to-zero (effectively equivalent to batch inference run on demand) is
+cheaper; above it, keeping the endpoint warm wins because the fixed hourly cost
+is amortized over enough requests.
