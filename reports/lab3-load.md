@@ -75,3 +75,51 @@ Throughput peaks at 10 users and plateaus at ~30 rps from 20 users; latency then
    version 3 exists but was not used: its git_commit does not match this repo's
    history and its origin could not be verified, so it was excluded rather than
    trusted.
+
+## Breaking point
+p95 target (500 ms) is met at 10 users (260 ms) and missed at 12 users (510 ms).
+**Breaking point ≈ 11-12 concurrent users** at 0.5 vCPU / 1 GiB. Throughput plateaus
+(~30-38 rps) from 12 users onward while p95/p99 keep climbing — classic single-replica
+queueing (maxReplicas=1, no scale-out), not a client bottleneck (locust itself sustains
+much higher rps in the batch_compare.py single-connection test below).
+
+## Batch size (loadtest/batch_compare.py, concurrency 1)
+| rows | N single calls | 1 batch call | speedup | batch ms/row |
+|---|---|---|---|---|
+| 1 | 111 ms | 111 ms | 1.0x | 110.7 |
+| 10 | 1110 ms | 111 ms | 10.0x | 11.1 |
+| 50 | 5601 ms | 112 ms | 50.2x | 2.2 |
+| 100 | 11150 ms | 114 ms | 97.4x | 1.1 |
+
+`/predict/batch` wins almost linearly with row count: one network round-trip instead of
+N. At 100 rows, batching is ~97x faster than 100 sequential single calls. The batch
+call's own latency stays flat (~111-114 ms) regardless of row count — the network RTT
+dominates, not the model's compute time.
+
+## Payload size (loadtest/payload_probe.py, concurrency 1, via /predict/batch row count)
+| rows | bytes in | bytes out | median ms | ms/row |
+|---|---|---|---|---|
+| 1 | 129 | 60 | 420 | 419.6 |
+| 10 | 1200 | 249 | 421 | 42.1 |
+| 25 | 2985 | 564 | 424 | 17.0 |
+| 50 | 5960 | 1089 | 426 | 8.5 |
+| 100 | 11910 | 2139 | 550 | 5.5 |
+
+The schema (`extra: forbid`, fixed 6 numeric fields) rules out inflating a single row's
+payload directly, so row count is used as the payload-size lever. Total call latency is
+flat (~420 ms) up to 50 rows (~6 KB), then jumps to 550 ms at 100 rows (~12 KB) — JSON
+(de)serialization starts to show up only once the payload crosses roughly 6-12 KB.
+Below that, network RTT dominates and payload size is irrelevant.
+
+## Instance size — one step up (0.5 vCPU/1 GiB -> 1.0 vCPU/2 GiB)
+| concurrency | 0.5 vCPU/1 GiB | 1.0 vCPU/2 GiB | change |
+|---|---|---|---|
+| 10 users | rps=44.4, p95=260ms | rps=36.6, p95=390ms | **worse** — below the bottleneck, extra headroom adds nothing, just noise |
+| 50 users | rps=30.2, p95=2700ms | rps=60.1, p95=1100ms | **~2x rps, p95 down 59%** — CPU was the bottleneck here |
+
+Doubling vCPU/memory only pays off once the workload is actually CPU-bound
+(concurrency well past the single-replica breaking point). At light load it makes
+no difference or is slightly worse (scheduling/measurement noise). Cost: see Task 5 —
+1.0 vCPU/2 GiB costs exactly 2x the active-rate of 0.5 vCPU/1 GiB per second, so the
+~2x throughput gain at 50 users is roughly cost-neutral per prediction at that
+concurrency, while at 10 users upgrading is pure waste.
