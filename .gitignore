@@ -30,3 +30,4 @@ outputs/
 job_dl/
 !reports/lab2-comparison.json
 reports/mlflow.db.bak-old-schema
+reports/batch_compare.txt
