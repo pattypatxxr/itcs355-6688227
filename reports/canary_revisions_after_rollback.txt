@@ -1,0 +1,4 @@
+Name                    Active    Traffic
+----------------------  --------  ---------
+itcs355-serve--1wquww8  True      0
+itcs355-serve--0000001  True      100

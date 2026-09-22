@@ -1,0 +1,10 @@
+[
+  {
+    "revisionName": "itcs355-serve--0000001",
+    "weight": 90
+  },
+  {
+    "revisionName": "itcs355-serve--canary4",
+    "weight": 10
+  }
+]
