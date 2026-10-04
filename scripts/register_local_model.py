@@ -3,14 +3,18 @@
 Lineage is honest: there is no managed training job or image digest, so those tags say so.
 Reuses the adapter; never promotes."""
 from __future__ import annotations
-import argparse, json, re, subprocess, sys
+import argparse
+import json
+import re
+import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src import config
-from cloudlayer.factory import get_adapter
+from src import config  # noqa: E402
+from cloudlayer.factory import get_adapter  # noqa: E402
 
 
 def main() -> int:
