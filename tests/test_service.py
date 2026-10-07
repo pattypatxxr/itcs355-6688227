@@ -87,3 +87,26 @@ def test_batch_matches_singles(client):
 def test_batch_size_limit_enforced(client):
     r = client.post("/predict/batch", json={"rows": [VALID] * 101})
     assert r.status_code == 422
+
+
+def test_metrics_exposes_the_series_the_dashboard_queries(client):
+    """dashboard.json queries these names. If one is renamed the dashboard goes blank
+    silently, which is the 'metrics emitted to a different namespace' failure in the lab."""
+    assert client.post("/predict", json=VALID).status_code == 200
+    assert client.post("/predict", json={"temp_c": "not-a-number"}).status_code == 422
+
+    text = client.get("/metrics").text
+    assert 'http_requests_total{path="/predict",status_class="2xx"}' in text
+    assert 'http_requests_total{path="/predict",status_class="4xx"}' in text
+    assert 'request_latency_ms_bucket{le="+Inf"}' in text
+    assert 'model_version_info{version="test-1"} 1' in text
+    assert 'feature_rolling_mean{feature="temp_c"}' in text
+
+
+def test_probes_and_scrapes_are_not_counted_as_traffic(client):
+    client.get("/health")
+    client.get("/ready")
+    client.get("/metrics")
+    text = client.get("/metrics").text
+    assert 'path="/health"' not in text
+    assert 'path="/metrics"' not in text

@@ -61,6 +61,9 @@ def _load_model():
 async def lifespan(app: FastAPI):
     try:
         STATE["model"] = _load_model()
+        if hasattr(STATE["model"], "n_jobs"):
+            # a 1-row predict_proba is ~6x slower with n_jobs=-1 (measured: p95 61 vs 10.5 ms)
+            STATE["model"].n_jobs = 1
         log.info('"model loaded, version=%s"', STATE["version"])
     except Exception as exc:  # readiness stays false; liveness still passes
         STATE["model"] = None
@@ -69,6 +72,11 @@ async def lifespan(app: FastAPI):
     STATE["model"] = None
 
 
+try:
+    from service import metrics  # noqa: E402
+except ImportError:  # image layout without the package prefix
+    import metrics  # type: ignore  # noqa: E402
+
 app = FastAPI(title="ITCS355 inference", version="1.0.0", lifespan=lifespan)
 
 
@@ -76,8 +84,14 @@ app = FastAPI(title="ITCS355 inference", version="1.0.0", lifespan=lifespan)
 async def add_request_context(request: Request, call_next):
     request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
     started = time.perf_counter()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        # an unhandled error never reaches the response path; count it as a 5xx anyway
+        metrics.record_request(request.url.path, 500, (time.perf_counter() - started) * 1000)
+        raise
     latency_ms = (time.perf_counter() - started) * 1000
+    metrics.record_request(request.url.path, response.status_code, latency_ms)
     response.headers["x-request-id"] = request_id
     response.headers["x-model-version"] = str(STATE["version"])
     log.info(
@@ -85,6 +99,14 @@ async def add_request_context(request: Request, call_next):
         request_id, request.url.path, response.status_code, latency_ms, STATE["version"],
     )
     return response
+
+
+@app.get("/metrics", include_in_schema=False)
+def prometheus_metrics():
+    from fastapi.responses import PlainTextResponse
+
+    return PlainTextResponse(metrics.render(STATE["version"]),
+                             media_type="text/plain; version=0.0.4")
 
 
 @app.get("/health")
@@ -119,11 +141,13 @@ def _score(rows: list[dict]) -> list[float]:
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(payload: PredictRequest) -> PredictResponse:
+    metrics.observe_features([payload.model_dump()])
     score = _score([payload.model_dump()])[0]
     return PredictResponse(probability=score, model_version=str(STATE["version"]))
 
 
 @app.post("/predict/batch", response_model=BatchResponse)
 def predict_batch(payload: BatchRequest) -> BatchResponse:
+    metrics.observe_features([row.model_dump() for row in payload.rows])
     scores = _score([row.model_dump() for row in payload.rows])
     return BatchResponse(probabilities=scores, model_version=str(STATE["version"]))
