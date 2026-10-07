@@ -132,3 +132,6 @@ deploy: ## Deploy the serving image to Container Apps
 
 smoke: ## Invoke the deployed endpoint with three known payloads
 	python scripts/smoke.py $(ENDPOINT)
+
+scan-secrets: ## Scan full git history for committed secrets
+	python scripts/scan_secrets.py
