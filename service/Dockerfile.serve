@@ -21,4 +21,6 @@ EXPOSE 8080
 #   startup & readiness probes -> /ready ; liveness probe -> /health (lines ~280-284)
 #   invoke() -> POST /predict or /predict/batch depending on payload shape (line ~342)
 # in service/app.py — that is what makes the image non-portable.
-CMD ["uvicorn", "service.app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "2"]
+# ONE worker on purpose: service/metrics.py keeps counters in process memory, and with
+# several workers a scrape hits a random one, so counters jump and rate() is wrong.
+CMD ["uvicorn", "service.app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]

@@ -110,3 +110,11 @@ def test_probes_and_scrapes_are_not_counted_as_traffic(client):
     text = client.get("/metrics").text
     assert 'path="/health"' not in text
     assert 'path="/metrics"' not in text
+
+
+def test_serving_image_runs_one_worker():
+    """metrics.py keeps counters in process memory. With N uvicorn workers a scrape lands on
+    a random worker and the counters jump between N independent values, so rate() is wrong.
+    Move metrics to prometheus_client multiprocess mode before raising this."""
+    dockerfile = (config.REPO_ROOT / "service" / "Dockerfile.serve").read_text()
+    assert '"--workers", "1"' in dockerfile
