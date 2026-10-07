@@ -68,26 +68,30 @@ class AzureAdapter(CloudAdapter):
             f.write(blob_client.download_blob().readall())
 
     def push_image(self, local_tag: str) -> str:
-        registry = self.cfg.container_registry  # e.g. itcs3556688227.azurecr.io/itcs355
-        remote_tag = f"{registry}:latest"
+        """Push `<name>[:<tag>]` under the same name and return `repo@sha256:...`.
+
+        The tag is kept, so CD can pass the commit SHA; a bare name falls back to `latest`.
+        The repository comes from the local name, so the serving image no longer overwrites
+        the training image under one shared tag.
+        """
+        server = self.cfg.container_registry.split("/")[0]  # e.g. itcs3556688227.azurecr.io
+        name, _, tag = local_tag.partition(":")
+        repo = f"{server}/{name.rsplit('/', 1)[-1]}"
+        remote_tag = f"{repo}:{tag or 'latest'}"
 
         subprocess.run(["docker", "tag", local_tag, remote_tag], check=True)
         subprocess.run(["docker", "push", remote_tag], check=True)
 
-        # Resolve the digest that was just pushed. RepoDigests can contain multiple
-        # entries (local tag + remote registry); pick the one matching our registry.
+        # RepoDigests can hold several entries; pick the one for the repo just pushed.
         result = subprocess.run(
             ["docker", "inspect", "--format={{json .RepoDigests}}", remote_tag],
-            check=True,
-            capture_output=True,
-            text=True,
+            check=True, capture_output=True, text=True,
         )
         repo_digests = json.loads(result.stdout.strip())
-        matches = [d for d in repo_digests if d.startswith(registry)]
+        matches = [d for d in repo_digests if d.startswith(f"{repo}@")]
         if not matches:
             raise RuntimeError(
-                f"Could not find a RepoDigest matching registry '{registry}' "
-                f"among {repo_digests} after push"
+                f"Could not find a RepoDigest for '{repo}' among {repo_digests} after push"
             )
         return matches[0]
 

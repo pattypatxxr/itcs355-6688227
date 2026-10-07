@@ -24,7 +24,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Scan history for secrets
         run: make scan-secrets
@@ -37,7 +37,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
 
       - name: Install
@@ -78,7 +78,7 @@ jobs:
       # needs the same interpreter and pins as the test job.
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
 
       - name: Install
@@ -108,7 +108,9 @@ jobs:
           curl -sf -X POST localhost:8080/predict \
             -H 'content-type: application/json' \
             -d '{"temp_c":78.4,"vibration_mm_s":3.1,"pressure_kpa":315.2,"hours_since_service":4200,"load_pct":68,"ambient_humidity":55}' \
-            | tee /dev/stderr | grep -q probability
+            | tee /dev/stderr \
+            | python -c "import sys, json; d = json.load(sys.stdin); assert 0 <= d['probability'] <= 1, d; assert d['model_version'] == '${{ github.sha }}', d"
+          curl -sf localhost:8080/metrics | grep -q 'model_version_info'
           docker stop svc
 
       # Images are tagged with the commit SHA, never `latest`. A `latest` tag makes it

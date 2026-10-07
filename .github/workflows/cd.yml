@@ -1,8 +1,7 @@
-# ITCS355 Lab 4 — continuous deployment.
+# ITCS355 Lab 4 — continuous deployment to staging.
 #
-# Runs only on main, only after CI is green. Credentials come from OIDC federation, not
-# from stored keys — TODO(Lab 4): uncomment the block for YOUR provider and delete the
-# other two.
+# Runs only after CI is green, only for pushes to main. Credentials come from OIDC
+# federation (azure/login with a federated managed identity): no key is stored anywhere.
 
 name: CD
 
@@ -16,47 +15,127 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: cd-staging
+  cancel-in-progress: false
+
 jobs:
   deploy-staging:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: staging
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha }}
+      STAGING_APP: itcs355-staging
+      STAGING_MODEL_VERSION: ${{ vars.STAGING_MODEL_VERSION || '2' }}
+      # capability slots (non-secret) that src/config.py reads; cloud.env is not in the repo
+      CLOUD_PROVIDER: ${{ vars.CLOUD_PROVIDER }}
+      PROJECT_ID: ${{ vars.PROJECT_ID }}
+      REGION: ${{ vars.REGION }}
+      BLOB_URI: ${{ vars.BLOB_URI }}
+      CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
+      MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
+      MODEL_REGISTRY_NAME: ${{ vars.MODEL_REGISTRY_NAME }}
+      IDENTITY_REF: ${{ vars.IDENTITY_REF }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_WORKSPACE_NAME: ${{ vars.AZURE_WORKSPACE_NAME }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
-      # --- AWS ---------------------------------------------------------------
-      # - uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-      #     aws-region: ${{ vars.REGION }}
-      # - run: aws ecr get-login-password --region ${{ vars.REGION }} | docker login --username AWS --password-stdin ${{ vars.CONTAINER_REGISTRY }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
 
-      # --- Azure -------------------------------------------------------------
-      # - uses: azure/login@v2
-      #   with:
-      #     client-id: ${{ secrets.AZURE_CLIENT_ID }}
-      #     tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-      #     subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      # - run: az acr login --name ${{ vars.ACR_NAME }}
-
-      # --- GCP ---------------------------------------------------------------
-      # - uses: google-github-actions/auth@v2
-      #   with:
-      #     workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
-      #     service_account: ${{ secrets.GCP_DEPLOY_SA }}
-      # - run: gcloud auth configure-docker ${{ vars.REGION }}-docker.pkg.dev
-
-      - name: Push image
+      - name: Install
         run: |
-          echo "TODO(Lab 4): push the SHA-tagged image through your adapter"
-          # python -c "from src import config; from cloudlayer.factory import get_adapter; \
-          #   print(get_adapter(config.load()).push_image('itcs355-serve:${{ github.sha }}'))"
+          pip install --upgrade pip
+          pip install --require-hashes -r requirements.txt
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Prepare az and registry login
+        run: |
+          az extension add --name containerapp --upgrade -y
+          az acr login --name ${{ vars.ACR_NAME }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build serving image (tagged by commit SHA)
+        run: |
+          docker buildx build --platform linux/amd64 -f service/Dockerfile.serve \
+            -t itcs355-serve:${SHA} --load .
+
+      - name: Push image through the adapter
+        run: |
+          python - <<'PY'
+          import os
+          from src import config
+          from cloudlayer.factory import get_adapter
+
+          ref = get_adapter(config.load()).push_image(f"itcs355-serve:{os.environ['SHA']}")
+          print("pushed:", ref)
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              f.write(f"SERVE_IMAGE={ref}\n")
+          PY
 
       - name: Deploy to staging
         run: |
-          echo "TODO(Lab 4): adapter.deploy(model_ref, endpoint, instance)"
+          python - <<'PY'
+          import os
+          from src import config
+          from cloudlayer.factory import get_adapter
 
-      - name: Smoke test
+          url = get_adapter(config.load()).deploy(
+              f"{os.environ['MODEL_REGISTRY_NAME']}:{os.environ['STAGING_MODEL_VERSION']}",
+              os.environ["STAGING_APP"],
+              "0.5/1.0Gi",
+          )
+          print("deployed:", url)
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              f.write(f"STAGING_URL={url}\n")
+          PY
+
+      - name: Wait for readiness (scale-to-zero cold start is about 60 s)
         run: |
-          echo "TODO(Lab 4): adapter.invoke() with three known payloads."
-          echo "A deploy that is not smoke-tested is a deploy you have not verified."
+          for i in $(seq 1 40); do
+            if curl -sf --max-time 15 "$STAGING_URL/ready"; then echo; exit 0; fi
+            echo "not ready yet ($i/40)"; sleep 10
+          done
+          echo "staging never became ready"; exit 1
+
+      - name: Smoke test with three known payloads
+        run: |
+          python - <<'PY'
+          import os
+          from src import config
+          from cloudlayer.factory import get_adapter
+
+          adapter = get_adapter(config.load())
+          payloads = [
+              {"temp_c": 66.0, "vibration_mm_s": 1.4, "pressure_kpa": 330.0,
+               "hours_since_service": 50.0, "load_pct": 30.0, "ambient_humidity": 50.0},
+              {"temp_c": 78.4, "vibration_mm_s": 3.1, "pressure_kpa": 315.2,
+               "hours_since_service": 4200.0, "load_pct": 68.0, "ambient_humidity": 55.0},
+              {"temp_c": 90.0, "vibration_mm_s": 6.0, "pressure_kpa": 290.0,
+               "hours_since_service": 8500.0, "load_pct": 90.0, "ambient_humidity": 70.0},
+          ]
+          probs = []
+          for p in payloads:
+              r = adapter.invoke(os.environ["STAGING_URL"], p)
+              print(r)
+              prob = r.get("probability")
+              assert prob is not None and 0.0 <= prob <= 1.0, r
+              probs.append(prob)
+          assert probs[0] < 0.5, f"healthy machine scored {probs[0]}"
+          print("smoke test passed:", probs)
+          PY
