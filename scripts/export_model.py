@@ -29,7 +29,7 @@ def main() -> int:
     train_df, _, _ = data.split(df, seed=seed)
 
     model = RandomForestClassifier(n_estimators=200, max_depth=8, min_samples_leaf=5,
-                                   random_state=seed, n_jobs=-1)
+                                   random_state=seed, n_jobs=1)
     model.fit(train_df[data.FEATURES], train_df[data.TARGET])
     args.out.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, args.out)

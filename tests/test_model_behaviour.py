@@ -20,7 +20,11 @@ from sklearn.ensemble import RandomForestClassifier
 from src import config, data, seeds
 
 RAW = config.REPO_ROOT / "data" / "raw" / "sensors.csv"
-LATENCY_BUDGET_MS = 50.0  # TODO(Lab 4): set from YOUR p95 target in loadtest/k6.js
+# Measured, 1 row, 120 trees: n_jobs=1 -> p50 7.5 ms, p95 10.5 ms;
+# n_jobs=-1 -> p50 47 ms, p95 61 ms (thread-pool start-up dominates a 1-row call).
+# 25 ms = ~3x headroom for a slower CI runner, and still fails on the n_jobs=-1 regression.
+# This is only the model's share of the endpoint p95 in slo.yaml (which adds HTTP + network).
+LATENCY_BUDGET_MS = 25.0
 
 
 @pytest.fixture(scope="module")
@@ -31,7 +35,7 @@ def fitted():
     df = data.load_raw(RAW)
     train_df, _, test_df = data.split(df, seed=seed)
     model = RandomForestClassifier(n_estimators=120, max_depth=8, min_samples_leaf=5,
-                                   random_state=seed, n_jobs=-1)
+                                   random_state=seed, n_jobs=1)
     model.fit(train_df[data.FEATURES], train_df[data.TARGET])
     return model, test_df
 
