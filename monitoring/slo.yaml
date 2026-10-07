@@ -7,26 +7,45 @@ service: itcs355-predict
 
 objectives:
   - name: availability
-    target: 0.995              # TODO(Lab 4): your number, and defend it
+    # 99% over 30 d = 432 min of allowed failure. Not 99.5%: the service runs ONE replica
+    # (maxReplicas=1, no redundancy) and every deploy restarts it behind a ~61 s cold start
+    # (Lab 3, measured 61.2 / 61.1 / 63.1 s). 99.5% (216 min) would be a promise this
+    # architecture cannot keep without paying for minReplicas>=1.
+    target: 0.99
     window: 30d
     measurement: "successful responses / total responses, excluding 4xx"
+    # In-app counters (http_requests_total) exclude /health /ready /metrics, and cannot see
+    # requests that time out at the ingress during a cold start. Cross-check against the
+    # Container Apps platform metric `Requests` split by StatusCodeCategory.
     on_budget_exhausted: |
-      TODO(Lab 4): what actually happens. Freeze deploys? Page someone? Fall back to the
-      last known-good version? Accept it and revise the target? All are defensible;
-      silence is not.
+      1. Freeze every deploy except fixes for the rest of the window.
+      2. If burn began after a deploy, roll back to the previous container-app revision.
+      3. Written review in the course channel within 48 h.
+      4. If the burn was cold starts, set minReplicas=1 (about $2.59/day at 1 vCPU/2 GiB,
+         per the Lab 3 cost table) and pay for it, instead of loosening the target.
 
   - name: latency
-    target_p95_ms: 200         # TODO(Lab 4): must match the target you set in loadtest/k6.js
+    # Same 500 ms as loadtest/k6.js and the Lab 3 report (written before measuring).
+    # Lab 3 at 10 users: client p95 260 ms, of which ~135 ms is Bangkok->japanwest RTT,
+    # so server-side p95 is roughly 125 ms and the budget has real headroom.
+    target_p95_ms: 500
     window: 7d
-    measurement: "p95 of /predict, measured at the endpoint, not at the client"
+    measurement: "p95 of /predict from request_latency_ms, measured at the endpoint, not at the client"
     on_budget_exhausted: |
-      TODO(Lab 4)
+      Diagnose first, because the fixes differ:
+      - queueing (breaking point was ~11-12 concurrent users on 0.5 vCPU): raise
+        maxReplicas to 2 or use 1.0 vCPU (Lab 3: ~2x rps, p95 -59% at 50 users);
+      - cold start dominating p95: minReplicas=1;
+      - model got slower (the n_jobs regression): tests/test_model_behaviour.py should have
+        blocked it, so find out why it did not.
+      Freeze model promotions until p95 is back under target.
 
   - name: freshness
     target_max_model_age_days: 30
     window: continuous
     measurement: "days since the production model version was trained"
     on_budget_exhausted: |
-      TODO(Lab 4): this one interacts with your retraining trigger in Lab 5. Keep them
-      consistent — an SLO demanding a 30-day-old model and a 90-day retrain schedule is
-      a contradiction you should notice here rather than in production.
+      Retrain through the Lab 5 pipeline. The retrain trigger must fire at 21 days of age or
+      on a drift alert, whichever is first, so this SLO is never the first signal. Exception:
+      if the drift alert traces to a broken upstream producer, do NOT retrain. Keep serving
+      the old good model and accept the freshness breach: an old model beats a corrupted one.
