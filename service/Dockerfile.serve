@@ -14,6 +14,12 @@ WORKDIR /app
 COPY --chown=runner:runner service/ ./service/
 COPY --chown=runner:runner src/ ./src/
 COPY --chown=runner:runner cloudlayer/ ./cloudlayer/
+COPY --chown=runner:runner monitoring/ ./monitoring/
+COPY --chown=runner:runner scripts/make_dataset.py ./scripts/make_dataset.py
+# Drift job reference data: regenerated deterministically (seed in make_dataset.py) because
+# data/ is DVC-managed and excluded by .dockerignore. REFERENCE_CSV points the job here.
+RUN python scripts/make_dataset.py --out /app/reference/sensors.csv
+ENV REFERENCE_CSV=/app/reference/sensors.csv
 USER runner
 
 EXPOSE 8080
