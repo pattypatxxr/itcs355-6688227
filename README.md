@@ -235,7 +235,7 @@ Times are taken from the `drift ALERT` timestamp in the message (UTC), not Disco
 - **What fired:** drift alert at 08:30:20 UTC; `temp_c` PSI 0.133 against threshold 0.07, 1 of 6 features, rising to 0.334-0.344 as the window filled with shifted data.
 - **True cause:** a +6 °C mean shift in `temp_c` only. Scenario: the sensor was recalibrated and reads higher while the machines did not get hotter. Schema and null rate did not change, so this is not an upstream pipeline break.
 - **Retrain, roll back, or no action:** no retrain, no rollback. The real world did not change, only the readings. Retraining would teach the model that 85 is normal, and when calibration is corrected the model would be permanently off. Confirm with the sensor owners, then either restore the calibration or apply an offset in preprocessing; keep the current model serving meanwhile.
-- **Cost if unnoticed for a week:** [TO FILL]
+- **Cost if unnoticed for a week:** The model would over-estimate failure risk on every request for seven days. In the data generator a +6 °C offset raises the failure logit by about 0.052 x 6 = 0.3, which is a direction estimate and not a measured effect on the trained model. The consequence would be extra false alarms and unnecessary inspections and a loss of trust in the alerts. It is not quantified in money because this lab has no real traffic or inspection cost.
 - **Prevent or detect faster:** shorter cron interval, a per-feature mean-shift alert on a smaller window, let the drift job read a sensor/calibration change log, and monitor prediction quality when labels exist to separate data drift from concept drift.
 
 ### Teardown
