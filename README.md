@@ -196,7 +196,7 @@ Prometheus and Grafana run from `monitoring/docker-compose.yml`; the dashboard i
 code in `monitoring/dashboard.json`. It shows the five required signals: model version in
 production, request rate, error rate split into 4xx and 5xx, server-side latency p50/p95/p99,
 and the rolling mean/std of `temp_c` over the last 500 requests. Screenshot taken 2026-10-08
-16:39 (UTC+7).
+13:07 (UTC+7).
 
 Notes: the `temp_c` panel did not record the pre-shift period (the rolling window was already
 mixed when scraping started), so the evidence for the shift is the Discord alerts and the
