@@ -180,10 +180,10 @@ without a subscription type change outside the scope of this course.
 
 | Test | Production incident it would have caught |
 |---|---|
-| `test_schema_columns_present_and_typed` | An upstream producer drops or renames a column (Task 3: `missing columns: ['vibration_mm_s']`). |
-| `test_no_nulls_in_required_columns` | A sensor stops reporting and the null rate in a required column jumps. |
-| `test_features_within_plausible_ranges` | A unit change (e.g. °F instead of °C) or a faulty sensor sends values outside the physically plausible range. |
-| `test_no_machine_leaks_across_splits` | The split silently becomes row-wise, so one machine lands in both train and test and scores look better than reality. |
+| `test_schema_columns_present_and_typed` | An upstream producer drops, renames or adds a column, or changes a column's type (Task 3: `missing columns: ['vibration_mm_s']`). |
+| `test_no_nulls_in_required_columns` | A sensor stops reporting or a join breaks, so a required column starts arriving with nulls (the null-rate threshold is zero; the message names each column and its count). |
+| `test_features_within_plausible_ranges` | A feed delivers values outside the physically plausible range, e.g. a unit change or a faulty sensor (bounds in `data.PLAUSIBLE_RANGES`). |
+| `test_no_machine_leaks_across_splits` | The split silently becomes row-wise, so the same machine appears in more than one split and scores look better than reality. |
 
 **Blocked bad commit (Task 3).** PR #1 ("DO NOT MERGE") removed the `vibration_mm_s` column and
 was closed without merging. CI result: 3 failed, 7 passed. The schema test named the cause
