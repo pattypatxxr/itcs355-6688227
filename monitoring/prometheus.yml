@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: itcs355-staging
+    scheme: https
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ["itcs355-staging.mangowater-dff33f4a.japanwest.azurecontainerapps.io"]
