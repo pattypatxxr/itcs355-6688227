@@ -185,6 +185,49 @@ class AzureAdapter(CloudAdapter):
     # generate                          -> Lab 5 (managed LLM endpoint; read the usage block for tokens)
     # teardown                          -> Lab 5 (resource graph query by tag)
 
+    # --- Lab 4 ---------------------------------------------------------------
+    def emit_metric(self, name: str, value: float, unit: str = "None") -> None:
+        """Send one custom metric to Application Insights; it lands in `customMetrics`.
+
+        Calls the ingestion REST endpoint directly, so no new dependency enters the
+        hash-pinned requirements. Needs APPLICATIONINSIGHTS_CONNECTION_STRING.
+        Raises on failure: a drift score that silently fails to arrive is worse than a crash.
+        """
+        import os
+        import urllib.error
+        import urllib.request
+        from datetime import datetime, timezone
+
+        conn = os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING")
+        if not conn:
+            raise RuntimeError("APPLICATIONINSIGHTS_CONNECTION_STRING is not set")
+        parts = dict(p.split("=", 1) for p in conn.split(";") if "=" in p)
+        endpoint = parts.get("IngestionEndpoint", "https://dc.services.visualstudio.com/")
+        envelope = {
+            "name": "Microsoft.ApplicationInsights.Metric",
+            "time": datetime.now(timezone.utc).isoformat(),
+            "iKey": parts["InstrumentationKey"],
+            "tags": {"ai.cloud.role": "itcs355-drift"},
+            "data": {"baseType": "MetricData", "baseData": {
+                "ver": 2,
+                "metrics": [{"name": name, "value": float(value)}],
+                "properties": {"unit": unit, **self.cfg.tags(4)},
+            }},
+        }
+        request = urllib.request.Request(
+            endpoint.rstrip("/") + "/v2/track",
+            data=json.dumps(envelope).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=15) as response:
+                body = json.loads(response.read() or b"{}")
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(f"emit_metric rejected: HTTP {exc.code} {exc.read()[:300]!r}") from exc
+        if body.get("itemsAccepted", 1) != 1:
+            raise RuntimeError(f"emit_metric not accepted: {body}")
+
     def teardown(self, tags: dict[str, str]) -> list[str]:
         """Delete every resource in the lab resource group carrying ALL these tags."""
         import os
