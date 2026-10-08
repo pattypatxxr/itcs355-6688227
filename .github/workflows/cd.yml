@@ -41,6 +41,7 @@ jobs:
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       AZURE_WORKSPACE_NAME: ${{ vars.AZURE_WORKSPACE_NAME }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      DRIFT_TOKEN: ${{ secrets.DRIFT_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:

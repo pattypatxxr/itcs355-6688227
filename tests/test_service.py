@@ -118,3 +118,25 @@ def test_serving_image_runs_one_worker():
     Move metrics to prometheus_client multiprocess mode before raising this."""
     dockerfile = (config.REPO_ROOT / "service" / "Dockerfile.serve").read_text()
     assert '"--workers", "1"' in dockerfile
+
+
+def test_window_endpoint_is_off_without_a_token(client, monkeypatch):
+    monkeypatch.delenv("DRIFT_TOKEN", raising=False)
+    assert client.get("/internal/window").status_code == 404
+
+
+def test_window_endpoint_rejects_wrong_or_missing_token(client, monkeypatch):
+    monkeypatch.setenv("DRIFT_TOKEN", "s3cret")
+    assert client.get("/internal/window").status_code == 401
+    assert client.get("/internal/window", headers={"x-drift-token": "nope"}).status_code == 401
+
+
+def test_window_endpoint_returns_recent_inputs_and_is_not_counted_as_traffic(client, monkeypatch):
+    monkeypatch.setenv("DRIFT_TOKEN", "s3cret")
+    assert client.post("/predict", json=VALID).status_code == 200
+    r = client.get("/internal/window", headers={"x-drift-token": "s3cret"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["n"] >= 1
+    assert 78.4 in body["features"]["temp_c"]
+    assert 'path="/internal/window"' not in client.get("/metrics").text

@@ -72,6 +72,8 @@ async def lifespan(app: FastAPI):
     STATE["model"] = None
 
 
+from fastapi import Header  # noqa: E402
+
 try:
     from service import metrics  # noqa: E402
 except ImportError:  # image layout without the package prefix
@@ -107,6 +109,20 @@ def prometheus_metrics():
 
     return PlainTextResponse(metrics.render(STATE["version"]),
                              media_type="text/plain; version=0.0.4")
+
+
+@app.get("/internal/window", include_in_schema=False)
+def feature_window(x_drift_token: str | None = Header(default=None)):
+    """Recent scored inputs, for the scheduled drift job. Off unless DRIFT_TOKEN is set."""
+    import hmac
+    import os
+
+    expected = os.environ.get("DRIFT_TOKEN", "")
+    if not expected:
+        raise HTTPException(status_code=404)
+    if not x_drift_token or not hmac.compare_digest(x_drift_token, expected):
+        raise HTTPException(status_code=401, detail="bad token")
+    return metrics.window_snapshot()
 
 
 @app.get("/health")

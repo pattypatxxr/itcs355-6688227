@@ -316,13 +316,17 @@ class AzureAdapter(CloudAdapter):
                         "traffic": [{"latestRevision": True, "weight": 100}],
                     },
                     "registries": [{"server": acr_server, "identity": ident["id"]}],
+                    **({"secrets": [{"name": "drift-token", "value": os.environ["DRIFT_TOKEN"]}]}
+                       if os.environ.get("DRIFT_TOKEN") else {}),
                 },
                 "template": {
                     "containers": [{
                         "name": "serve",
                         "image": image,
                         "resources": {"cpu": float(cpu), "memory": mem},
-                        "env": [{"name": k, "value": v} for k, v in env_vars.items()],
+                        "env": [{"name": k, "value": v} for k, v in env_vars.items()]
+                        + ([{"name": "DRIFT_TOKEN", "secretRef": "drift-token"}]
+                           if os.environ.get("DRIFT_TOKEN") else []),
                         "probes": [
                             {"type": "Startup", "httpGet": {"path": "/ready", "port": 8080},
                              "initialDelaySeconds": 5, "periodSeconds": 10, "failureThreshold": 10},

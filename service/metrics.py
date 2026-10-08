@@ -11,7 +11,7 @@ from collections import deque
 
 LATENCY_BUCKETS_MS = (5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000)
 WINDOW = 500  # rolling window: the last N rows this replica has scored
-UNMEASURED_PATHS = {"/metrics", "/health", "/ready"}  # probes and scrapes are not traffic
+UNMEASURED_PATHS = {"/metrics", "/health", "/ready", "/internal/window"}  # probes and scrapes are not traffic
 
 _lock = threading.Lock()
 _requests: dict[tuple[str, str], int] = {}
@@ -87,3 +87,10 @@ def render(model_version) -> str:
         out.append(f'feature_rolling_std{{feature="{name}"}} {std:.4f}')
         out.append(f'feature_window_size{{feature="{name}"}} {n}')
     return "\n".join(out) + "\n"
+
+
+def window_snapshot() -> dict:
+    """The rolling window as plain lists, for the drift job. `n` is the smallest feature window."""
+    with _lock:
+        features = {name: list(vals) for name, vals in _window.items()}
+    return {"n": min((len(v) for v in features.values()), default=0), "features": features}
