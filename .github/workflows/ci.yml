@@ -56,6 +56,9 @@ jobs:
       - name: Generate dataset
         run: python scripts/make_dataset.py
 
+      - name: Unit tests
+        run: pytest -q tests/test_emit_metric.py tests/test_drift.py tests/test_drift_job.py
+
       - name: Data contract tests
         run: pytest -q tests/test_data.py
 

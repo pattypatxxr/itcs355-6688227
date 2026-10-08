@@ -22,9 +22,13 @@ import pandas as pd
 
 # Conventional PSI reading, and it IS only conventional — it comes from credit scoring,
 # where features are stable and volumes are large. Your problem may warrant something
-# tighter or looser. TODO(Lab 4): state your threshold and why, in your README.
-PSI_NO_CHANGE = 0.10
-PSI_MODERATE = 0.25
+# tighter or looser. Ours, measured on this data with a 500-row window (the size the
+# service keeps): PSI between two samples of the SAME distribution has p99 = 0.0385 and
+# max = 0.053 over 1,000 draws; a +3 degC shift of temp_c (0.3 sigma) gives p5 = 0.070.
+# PSI_MODERATE is the alert line: above the noise, below the smallest shift we care about.
+# tests/test_drift.py re-measures both, so this cannot drift away from the evidence.
+PSI_NO_CHANGE = 0.04  # about the p99 of pure sampling noise
+PSI_MODERATE = 0.07   # alert threshold (the --threshold default)
 
 
 @dataclass
@@ -124,8 +128,7 @@ def main() -> int:
         print(f"{r.feature:<22}{r.psi:>10.5f}{r.ks_statistic:>10.5f}  {r.verdict}")
 
     if args.emit:
-        # TODO(Lab 4): implement emit_metric in your adapter, then this reaches
-        # CloudWatch / Azure Monitor / Cloud Monitoring and your dashboard shows it.
+        # emit_metric (cloudlayer/azure.py) sends each score to Application Insights.
         from cloudlayer.factory import get_adapter
         adapter = get_adapter(config.load(strict=False))
         for r in results:
